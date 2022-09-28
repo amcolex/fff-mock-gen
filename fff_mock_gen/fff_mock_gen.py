@@ -50,7 +50,7 @@ def main():
         # void function_name (const char* name);
 
         # find all function prototypes
-        function_prototypes = re.findall(r'((?:\w+\s+)+)(\w+)\s*\((.*)\);', f.read().rstrip('\n'))
+        function_prototypes = re.findall(r'(\w+)\s(\w+)\s*\(((\w|\s|[,]|[*]|\[|\])*)\);', f.read())
 
         # remove if contains 'typedef'
         function_prototypes = [x for x in function_prototypes if 'typedef' not in x[0]]
@@ -89,19 +89,28 @@ def main():
 
         # write header to mock file .h
         mock_file_h.write('#pragma once\n')
-        mock_file_h.write(f'#include <{Path(file).name}>\n\n')
-
+        mock_file_h.write(f'#include <{Path(file).name}>\n')
+        mock_file_h.write(f'#include <fff.h>\n\n')
         # write mock function prototypes to mock file .h
         for function in functions:
             # if function returns void
             if function['return_type'] == 'void':
-                # DECLARE_FAKE_VOID_FUNC(function_name, argument_types)
-                mock_file_h.write(f'DECLARE_FAKE_VOID_FUNC({function["function_name"]}, {", ".join(function["argument_types"])});\
-                \n')
+                # DECLARE_FAKE_VOID_FUNC(function_name)
+                if function['argument_types'][0] == 'void':
+                    mock_file_h.write(f'DECLARE_FAKE_VOID_FUNC({function["function_name"]});\
+                    \n')
+                else:
+                    mock_file_h.write(f'DECLARE_FAKE_VOID_FUNC({function["function_name"]}, {", ".join(function["argument_types"])});\
+                    \n')
             else:
                 # DECLARE_FAKE_VALUE_FUNC(return_type, function_name, argument_types);
-                mock_file_h.write(f'DECLARE_FAKE_VALUE_FUNC({function["return_type"]}, {function["function_name"]}, {", ".join(function["argument_types"])});\
-                \n')
+                # if function argument is void
+                if function['argument_types'][0] == 'void':
+                    mock_file_h.write(f'DECLARE_FAKE_VALUE_FUNC({function["return_type"]}, {function["function_name"]});\
+                    \n')
+                else:
+                    mock_file_h.write(f'DECLARE_FAKE_VALUE_FUNC({function["return_type"]}, {function["function_name"]}, {", ".join(function["argument_types"])});\
+                    \n')
 
         # write header to mock file .c
         mock_file_c.write(f'#include <{Path(file).stem}_mock.h>\n\n')
@@ -110,18 +119,33 @@ def main():
         for function in functions:
             # if function returns void
             if function['return_type'] == 'void':
-                # DEFINE_FAKE_VOID_FUNC(function_name, argument_types)
-                mock_file_c.write(f'DEFINE_FAKE_VOID_FUNC({function["function_name"]}, {", ".join(function["argument_types"])});\
-                \n')
+                if function['argument_types'][0] == 'void':
+                    # DEFINE_FAKE_VOID_FUNC(function_name)
+                    mock_file_c.write(f'DEFINE_FAKE_VOID_FUNC({function["function_name"]});\
+                    \n')
+                else:
+                    # DEFINE_FAKE_VOID_FUNC(function_name, argument_types)
+                    mock_file_c.write(f'DEFINE_FAKE_VOID_FUNC({function["function_name"]}, {", ".join(function["argument_types"])});\
+                    \n')
 
-            else:
-                # DEFINE_FAKE_VALUE_FUNC(return_type, function_name, argument_types);
-                mock_file_c.write(f'DEFINE_FAKE_VALUE_FUNC({function["return_type"]}, {function["function_name"]}, {", ".join(function["argument_types"])});\
-                \n')
+            else:                
+                if function['argument_types'][0] == 'void':
+                    mock_file_h.write(f'DEFINE_FAKE_VALUE_FUNC({function["return_type"]}, {function["function_name"]});\
+                    \n')
+                else:
 
+                    # DEFINE_FAKE_VALUE_FUNC(return_type, function_name, argument_types);
+                    mock_file_c.write(f'DEFINE_FAKE_VALUE_FUNC({function["return_type"]}, {function["function_name"]}, {", ".join(function["argument_types"])});\
+                    \n')
 
+        # close mock file .c and .h
+        mock_file_c.close()
+        mock_file_h.close()
 
-
+        # create globa fff.c file
+        fff_file = open(f'{output_path}/src/fff.c', 'w')
+        fff_file.write('#include <fff.h>\n\n')
+        fff_file.write('DEFINE_FFF_GLOBALS;\n')
 
 
 
