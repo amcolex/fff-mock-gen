@@ -6,18 +6,20 @@ import shutil
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-headers', dest='headers_directory', required=True)
+    parser.add_argument('-i', dest='headers_directory', required=True)
     parser.add_argument('-o', dest='output_directory', required=True)
     args = parser.parse_args()
 
     # create full paths
     headers_path = Path().resolve() / args.headers_directory
     output_path = Path().resolve() / args.output_directory
-
+    print('Headers path: {}'.format(headers_path))
+    print('Output path: {}'.format(output_path))
 
 
     # find all topic json files
-    header_files = glob.glob(f'{headers_path}\*.h')
+    header_files = glob.glob(f'{headers_path}/*.h')
+    print('Found {} header files'.format(len(header_files)))
 
     # if files list is empty return error
     if not header_files:
@@ -28,8 +30,8 @@ def main():
     if output_path.exists():
         shutil.rmtree(output_path)
 
-    # create output directory
-    output_path.mkdir()
+    # create output directory with all parent directories
+    output_path.mkdir(parents=True)
 
     # create inc and src directories
     inc_path = output_path / 'inc'
@@ -55,7 +57,7 @@ def main():
         # remove if contains 'typedef'
         function_prototypes = [x for x in function_prototypes if 'typedef' not in x[0]]
 
-        print('Generating for file: ' + file)
+        print('Generating mocks for: ' + file)
 
         # extract return type, function name, and arguments from each function prototype using regex
         functions = []
@@ -89,6 +91,7 @@ def main():
 
         # write header to mock file .h
         mock_file_h.write('#pragma once\n')
+        mock_file_h.write(f'#define FFF_GCC_FUNCTION_ATTRIBUTES __attribute__((weak))\n')
         mock_file_h.write(f'#include <{Path(file).name}>\n')
         mock_file_h.write(f'#include <fff.h>\n\n')
         # write mock function prototypes to mock file .h
@@ -130,7 +133,7 @@ def main():
 
             else:                
                 if function['argument_types'][0] == 'void':
-                    mock_file_h.write(f'DEFINE_FAKE_VALUE_FUNC({function["return_type"]}, {function["function_name"]});\
+                    mock_file_c.write(f'DEFINE_FAKE_VALUE_FUNC({function["return_type"]}, {function["function_name"]});\
                     \n')
                 else:
 
@@ -141,11 +144,6 @@ def main():
         # close mock file .c and .h
         mock_file_c.close()
         mock_file_h.close()
-
-        # create globa fff.c file
-        fff_file = open(f'{output_path}/src/fff.c', 'w')
-        fff_file.write('#include <fff.h>\n\n')
-        fff_file.write('DEFINE_FFF_GLOBALS;\n')
 
 
 
