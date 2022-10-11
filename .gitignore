@@ -4,3 +4,5 @@ out/
 fff_mock_gen/__pycache__/
 
 .vscode/launch.json
+
+dist/
