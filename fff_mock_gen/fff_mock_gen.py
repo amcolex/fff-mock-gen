@@ -52,7 +52,7 @@ def main():
         # void function_name (const char* name);
 
         # find all function prototypes
-        function_prototypes = re.findall(r'([\w|*|\s]+)\s(\w+)\s*\(((\w|\s|[,]|[*]|\[|\])*)\);', f.read())
+        function_prototypes = re.findall(r'([\w|*|" "]+)\s(\w+)\s*\(((\w|\s|[,]|[*]|\[|\])*)\);', f.read())
 
         # remove if contains 'typedef'
         function_prototypes = [x for x in function_prototypes if 'typedef' not in x[0]]
